@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+ 
+<head runat="server">
+    <title>google地图轨迹</title>
+    <meta charset="utf-8">
+    <style type="text/css">
+        #map_canvas {
+            width: auto;
+            height: 600px;
+            border: 1px solid gray;
+        }
+/*        #user1 {
+            top: 50px;
+        }
+ 
+        #user2 {
+            top: 200px;
+        }*/
+ 
+        .user-list {
+            right: 25px;
+            position: fixed;
+            border: 1px solid #c0c0c0;
+            width: 180px;
+            height: 110px;
+            background: #fff;
+            border-radius: 10px;
+            filter: alpha(Opacity=80);
+            -moz-opacity: 0.8;
+            opacity: 0.8;
+        }
+ 
+        .user-list ul {
+            list-style-type: none;
+            padding-left: 10px;
+        }
+ 
+        .user-list ul li {
+            padding-bottom: 10px;
+        }
+    </style>
+</head>
+ 
+<body onload="initialize()">
+<form id="form1" runat="server">
+    <div id="map_canvas"></div>
+</form>
+<!--<div id="user1" class="user-list">
+    <ul>
+        <li>姓名：张三</li>
+        <li>职务：3</li>
+        <li>电话：123456</li>
+    </ul>
+</div>
+<div id="user2" class="user-list">
+    <ul>
+        <li>姓名：李四</li>
+        <li>职务：3</li>
+        <li>电话：123456</li>
+    </ul>
+</div>-->
+<script type="text/javascript" src="/static/js/jquery.min.js"></script>
+<script src="http://maps.google.com/maps/api/js?key=AIzaSyDJW4jsPlNKgv6jFm3B5Edp5ywgdqLWdmc&v=3.1&sensor=true" type="text/javascript"></script>
+ 
+<script type="text/javascript">
+    function initialize() {
+        var gpsdatatmp = $.ajax({
+            url: "/api/gps/getgooglegps?ids=359339075955894",
+            async:false,
+        });
+        var gpsdata = eval('('+gpsdatatmp.responseText+')');
+        console.log(gpsdata);
+        if((gpsdata.status != 0) || (gpsdata.total == 0) ){
+            alert("get data error");
+            return false;
+        }
+        var trackPoints = [];
+        var lat;
+        var lng;
+        $.each(gpsdata.pois,function(i,val){
+            if(i == 0){
+                lat = val[1];
+                lng = val[0];
+            }
+            if(i%6 == 0)
+            {
+                trackPoints.push(new google.maps.LatLng(val[1], val[0]));
+            }
+        });
+        var myOptions = {
+            zoom: 15,
+            center: new google.maps.LatLng(lat,lng),
+            mapTypeId: google.maps.MapTypeId.ROADMAP
+        };
+        var map = new google.maps.Map(document.getElementById("map_canvas"), myOptions);
+ 
+        // Google地图轨迹坐标集   纬度，经度  或使用ajax后台读取
+
+        var trackPath = new google.maps.Polyline({
+            path: trackPoints,
+            strokeColor: "#FF0000", // 线条颜色
+            strokeOpacity: 1.0,     // 线条透明度
+            strokeWeight: 2         // 线条粗细
+        });
+ 
+ 
+        for (var i = 0; i < trackPoints.length; i++) {
+            //放置锚点  地图标记Marker
+            var marker = new google.maps.Marker({
+                position: trackPoints[i],
+                map: map,
+            });
+            //创建标注窗口
+            //showinfomessage(marker, map);
+        }
+        trackPath.setMap(map);
+ 
+        //动画开始
+        var lineSymbol = {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 8,
+            strokeColor: '#393'
+        };
+ 
+ 
+        line = new google.maps.Polyline({
+            path: trackPoints,
+            icons: [{
+                icon: lineSymbol,
+                offset: '100%'
+            }],
+            map: map
+        });
+        animateCircle();
+    }
+ 
+ 
+ 
+    function animateCircle() {
+        var count = 0;
+        window.setInterval(function() {
+            count = (count + 1) % 200;
+ 
+            var icons = line.get('icons');
+            icons[0].offset = (count / 2) + '%';
+            line.set('icons', icons);
+        }, 20);
+    }
+ 
+    //动画结束
+    function showinfomessage(marker, map) {
+        var infoWindow = new google.maps.InfoWindow({
+            content: "Message"               // 创建信息窗口对象
+        });
+        google.maps.event.addListener(marker,"click", function () {
+            infoWindow.open(map,marker);                                    // 打开信息窗口
+        });
+    }
+</script>
+</body>
+ 
+</html>
